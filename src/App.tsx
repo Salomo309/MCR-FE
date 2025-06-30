@@ -19,7 +19,6 @@ function App() {
     const remoteLines = remote.split('\n');
 
     const result = diff3Merge(localLines, baseLines, remoteLines);
-
     const merged: string[] = [];
 
     result.forEach((part: MergeRegion<string>) => {
@@ -49,6 +48,15 @@ function App() {
     setResolvedContent(resolved);
   };
 
+  const clearInputs = () => {
+    setBase('');
+    setLocal('');
+    setRemote('');
+    setConflictContent([]);
+    setResolvedContent([]);
+    setHasConflict(false);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white flex items-start py-10 px-4">
       <div className="w-1/2 max-w-md pr-8">
@@ -56,12 +64,20 @@ function App() {
         <FileInput label="Base Version" onFileChange={setBase} />
         <FileInput label="Local Version" onFileChange={setLocal} />
         <FileInput label="Remote Version" onFileChange={setRemote} />
-        <button
-          onClick={detectConflict}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4"
-        >
-          Detect Conflict
-        </button>
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={detectConflict}
+            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Detect Conflict
+          </button>
+          <button
+            onClick={clearInputs}
+            className="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded"
+          >
+            Clear All
+          </button>
+        </div>
       </div>
 
       <div className="w-1/2">
