@@ -1,35 +1,59 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import { FileInput } from './components/FileInput';
+import { ConflictViewer } from './components/ConflictViewer';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [base, setBase] = useState('');
+  const [local, setLocal] = useState('');
+  const [remote, setRemote] = useState('');
+  const [merged, setMerged] = useState<string[]>([]);
+  const [hasConflict, setHasConflict] = useState(false);
+
+  const detectConflict = () => {
+    if (!base || !local || !remote) return;
+
+    // Simulasi merge conflict (dummy)
+    const dummyConflict = [
+      'def hello():',
+      '<<<<<<< LOCAL',
+      '    print("Hello from local")',
+      '=======',
+      '    print("Hello from remote")',
+      '>>>>>>> REMOTE',
+    ];
+
+    setMerged(dummyConflict);
+    setHasConflict(true);
+  };
+
+  const resolveConflict = () => {
+    // Dummy resolved version
+    const resolved = [
+      'def hello():',
+      '    print("Hello from local and remote")',
+    ];
+    setMerged(resolved);
+    setHasConflict(false);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="max-w-3xl mx-auto py-10 px-4">
+      <h1 className="text-2xl font-bold mb-6">Merge Conflict Detector</h1>
+      <FileInput label="Base Version" onFileChange={setBase} />
+      <FileInput label="Local Version" onFileChange={setLocal} />
+      <FileInput label="Remote Version" onFileChange={setRemote} />
+      <button
+        onClick={detectConflict}
+        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4"
+      >
+        Detect Conflict
+      </button>
+
+      {merged.length > 0 && (
+        <ConflictViewer mergedContent={merged} hasConflict={hasConflict} onResolve={resolveConflict} />
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
