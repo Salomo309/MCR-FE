@@ -3,13 +3,19 @@ import { FileInput, type FileInputRef } from './components/FileInput';
 import { ConflictViewer } from './components/ConflictViewer';
 import { diff3Merge, type MergeRegion } from 'node-diff3';
 
+type ResolvedLine = {
+  line: string;
+  source?: 'local' | 'remote' | 'complex';
+};
+
 function App() {
   const [base, setBase] = useState('');
   const [local, setLocal] = useState('');
   const [remote, setRemote] = useState('');
   const [conflictContent, setConflictContent] = useState<string[]>([]);
   const [hasConflict, setHasConflict] = useState(false);
-  const [resolvedContent, setResolvedContent] = useState<string[]>([]);
+  const [resolvedContent, setResolvedContent] = useState<ResolvedLine[]>([]);
+  const [conflictType, setConflictType] = useState<'A' | 'B' | 'Kompleks' | null>(null);
   const [isResolving, setIsResolving] = useState(false);
 
   const baseRef = useRef<FileInputRef>(null);
@@ -41,6 +47,7 @@ function App() {
     setConflictContent(merged);
     setHasConflict(merged.some(line => line.startsWith('<<<<<<<')));
     setResolvedContent([]);
+    setConflictType(null);
   };
 
   const resolveConflict = async () => {
@@ -60,8 +67,14 @@ function App() {
       }
 
       const data = await response.json();
+      const type = data.conflict_type as 'A' | 'B' | 'Kompleks';
       const resolvedCode = data.resolved_code?.split('\n') || ['[No resolved code returned]'];
-      setResolvedContent(resolvedCode);
+
+      const source =
+        type === 'A' ? 'local' : type === 'B' ? 'remote' : 'complex';
+
+      setConflictType(type);
+      setResolvedContent(resolvedCode.map((line: string) => ({ line, source })));
     } catch (error) {
       console.error('Request error:', error);
       alert('Error resolving conflict. See console for details.');
@@ -77,6 +90,7 @@ function App() {
     setConflictContent([]);
     setResolvedContent([]);
     setHasConflict(false);
+    setConflictType(null);
 
     baseRef.current?.resetFile();
     localRef.current?.resetFile();
@@ -119,10 +133,28 @@ function App() {
         {resolvedContent.length > 0 && (
           <div className="bg-gray-900 p-4 rounded shadow-md">
             <h2 className="text-xl font-bold mb-4">Resolved Result:</h2>
+            {conflictType && (
+              <p className="mb-2 text-sm text-gray-400">
+                Predicted Resolution:{' '}
+                <span className="font-bold">{conflictType}</span>
+              </p>
+            )}
             <pre className="bg-gray-800 text-white p-4 rounded overflow-auto max-h-[500px] text-sm">
-              {resolvedContent.map((line, idx) => (
-                <div key={idx}>{line}</div>
-              ))}
+              {resolvedContent.map(({ line, source }, idx) => {
+                const bgClass =
+                  source === 'local'
+                    ? 'bg-blue-300/30'
+                    : source === 'remote'
+                    ? 'bg-green-300/30'
+                    : source === 'complex'
+                    ? 'bg-yellow-200/30'
+                    : '';
+                return (
+                  <div key={idx} className={bgClass}>
+                    {line}
+                  </div>
+                );
+              })}
             </pre>
           </div>
         )}
