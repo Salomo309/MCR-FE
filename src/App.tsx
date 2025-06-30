@@ -37,21 +37,25 @@ function App() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">Merge Conflict Detector</h1>
-      <FileInput label="Base Version" onFileChange={setBase} />
-      <FileInput label="Local Version" onFileChange={setLocal} />
-      <FileInput label="Remote Version" onFileChange={setRemote} />
-      <button
-        onClick={detectConflict}
-        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4"
-      >
-        Detect Conflict
-      </button>
+    <div className="min-h-screen bg-black text-white flex items-start py-10 px-4">
+      <div className="w-1/2 max-w-md pr-8">
+        <h1 className="text-3xl font-bold mb-8">Merge Conflict Detector</h1>
+        <FileInput label="Base Version" onFileChange={setBase} />
+        <FileInput label="Local Version" onFileChange={setLocal} />
+        <FileInput label="Remote Version" onFileChange={setRemote} />
+        <button
+          onClick={detectConflict}
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Detect Conflict
+        </button>
+      </div>
 
-      {merged.length > 0 && (
-        <ConflictViewer mergedContent={merged} hasConflict={hasConflict} onResolve={resolveConflict} />
-      )}
+      <div className="w-1/2">
+        {merged.length > 0 && (
+          <ConflictViewer mergedContent={merged} hasConflict={hasConflict} onResolve={resolveConflict} />
+        )}
+      </div>
     </div>
   );
 }

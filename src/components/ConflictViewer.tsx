@@ -6,9 +6,9 @@ interface ConflictViewerProps {
 
 export const ConflictViewer: React.FC<ConflictViewerProps> = ({ mergedContent, hasConflict, onResolve }) => {
   return (
-    <div className="mt-4">
-      <h2 className="text-xl font-bold mb-2">Merged Result:</h2>
-      <pre className="bg-gray-900 text-white p-4 rounded overflow-auto max-h-[400px] text-sm">
+    <div className="bg-gray-900 p-4 rounded shadow-md">
+      <h2 className="text-xl font-bold mb-4">Merged Result:</h2>
+      <pre className="bg-gray-800 text-white p-4 rounded overflow-auto max-h-[500px] text-sm">
         {mergedContent.map((line, idx) => (
           <div
             key={idx}
@@ -33,3 +33,4 @@ export const ConflictViewer: React.FC<ConflictViewerProps> = ({ mergedContent, h
     </div>
   );
 };
+
