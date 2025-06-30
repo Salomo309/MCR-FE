@@ -10,8 +10,8 @@ function App() {
   const [conflictContent, setConflictContent] = useState<string[]>([]);
   const [hasConflict, setHasConflict] = useState(false);
   const [resolvedContent, setResolvedContent] = useState<string[]>([]);
+  const [isResolving, setIsResolving] = useState(false);
 
-  // Refs ke masing-masing file input
   const baseRef = useRef<FileInputRef>(null);
   const localRef = useRef<FileInputRef>(null);
   const remoteRef = useRef<FileInputRef>(null);
@@ -43,14 +43,31 @@ function App() {
     setResolvedContent([]);
   };
 
-  const resolveConflict = () => {
-    const resolved = conflictContent.filter(
-      line =>
-        !line.startsWith('<<<<<<<') &&
-        !line.startsWith('=======') &&
-        !line.startsWith('>>>>>>>')
-    );
-    setResolvedContent(resolved);
+  const resolveConflict = async () => {
+    setIsResolving(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_DEV}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base, local, remote }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        console.error('Resolve failed:', err);
+        alert('Error resolving conflict: ' + (err.error || 'Unknown error'));
+        return;
+      }
+
+      const data = await response.json();
+      const resolvedCode = data.resolved_code?.split('\n') || ['[No resolved code returned]'];
+      setResolvedContent(resolvedCode);
+    } catch (error) {
+      console.error('Request error:', error);
+      alert('Error resolving conflict. See console for details.');
+    } finally {
+      setIsResolving(false);
+    }
   };
 
   const clearInputs = () => {
@@ -95,6 +112,7 @@ function App() {
             mergedContent={conflictContent}
             hasConflict={hasConflict}
             onResolve={resolveConflict}
+            isResolving={isResolving}
           />
         )}
 

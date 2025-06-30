@@ -2,9 +2,15 @@ interface ConflictViewerProps {
   mergedContent: string[];
   hasConflict: boolean;
   onResolve: () => void;
+  isResolving?: boolean;
 }
 
-export const ConflictViewer: React.FC<ConflictViewerProps> = ({ mergedContent, hasConflict, onResolve }) => {
+export const ConflictViewer: React.FC<ConflictViewerProps> = ({
+  mergedContent,
+  hasConflict,
+  isResolving,
+  onResolve,
+}) => {
   const getLineClass = (line: string) => {
     if (line.startsWith('<<<<<<<')) return 'bg-red-700 font-bold text-white';
     if (line.startsWith('=======')) return 'bg-red-600 text-white';
@@ -24,7 +30,10 @@ export const ConflictViewer: React.FC<ConflictViewerProps> = ({ mergedContent, h
       {hasConflict && (
         <button
           onClick={onResolve}
-          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          disabled={isResolving}
+          className={`mt-4 ${
+            isResolving ? 'bg-gray-500' : 'bg-blue-600 hover:bg-blue-700'
+          } text-white font-bold py-2 px-4 rounded`}
         >
           Resolve Conflict
         </button>
