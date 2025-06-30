@@ -5,19 +5,18 @@ interface ConflictViewerProps {
 }
 
 export const ConflictViewer: React.FC<ConflictViewerProps> = ({ mergedContent, hasConflict, onResolve }) => {
+  const getLineClass = (line: string) => {
+    if (line.startsWith('<<<<<<<')) return 'bg-red-700 font-bold text-white';
+    if (line.startsWith('=======')) return 'bg-red-600 text-white';
+    if (line.startsWith('>>>>>>>')) return 'bg-red-700 font-bold text-white';
+    return '';
+  };
   return (
     <div className="bg-gray-900 p-4 rounded shadow-md">
       <h2 className="text-xl font-bold mb-4">Merged Result:</h2>
       <pre className="bg-gray-800 text-white p-4 rounded overflow-auto max-h-[500px] text-sm">
         {mergedContent.map((line, idx) => (
-          <div
-            key={idx}
-            className={
-              line.startsWith('<<<<<<<') || line.startsWith('=======') || line.startsWith('>>>>>>>')
-                ? 'bg-red-600 text-white'
-                : ''
-            }
-          >
+          <div key={idx} className={getLineClass(line)}>
             {line}
           </div>
         ))}
