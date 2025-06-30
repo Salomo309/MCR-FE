@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { FileInput } from './components/FileInput';
+import { useRef, useState } from 'react';
+import { FileInput, type FileInputRef } from './components/FileInput';
 import { ConflictViewer } from './components/ConflictViewer';
 import { diff3Merge, type MergeRegion } from 'node-diff3';
 
@@ -10,6 +10,11 @@ function App() {
   const [conflictContent, setConflictContent] = useState<string[]>([]);
   const [hasConflict, setHasConflict] = useState(false);
   const [resolvedContent, setResolvedContent] = useState<string[]>([]);
+
+  // Refs ke masing-masing file input
+  const baseRef = useRef<FileInputRef>(null);
+  const localRef = useRef<FileInputRef>(null);
+  const remoteRef = useRef<FileInputRef>(null);
 
   const detectConflict = () => {
     if (!base || !local || !remote) return;
@@ -55,15 +60,19 @@ function App() {
     setConflictContent([]);
     setResolvedContent([]);
     setHasConflict(false);
+
+    baseRef.current?.resetFile();
+    localRef.current?.resetFile();
+    remoteRef.current?.resetFile();
   };
 
   return (
     <div className="min-h-screen bg-black text-white flex items-start py-10 px-4">
       <div className="w-1/2 max-w-md pr-8">
         <h1 className="text-3xl font-bold mb-8">Merge Conflict Detector</h1>
-        <FileInput label="Base Version" onFileChange={setBase} />
-        <FileInput label="Local Version" onFileChange={setLocal} />
-        <FileInput label="Remote Version" onFileChange={setRemote} />
+        <FileInput ref={baseRef} label="Base Version" onFileChange={setBase} />
+        <FileInput ref={localRef} label="Local Version" onFileChange={setLocal} />
+        <FileInput ref={remoteRef} label="Remote Version" onFileChange={setRemote} />
         <div className="flex gap-2 mt-4">
           <button
             onClick={detectConflict}

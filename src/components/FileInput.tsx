@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+
+export interface FileInputRef {
+  resetFile: () => void;
+}
 
 interface FileInputProps {
   label: string;
   onFileChange: (content: string) => void;
 }
 
-export const FileInput: React.FC<FileInputProps> = ({ label, onFileChange }) => {
+export const FileInput = forwardRef<FileInputRef, FileInputProps>(({ label, onFileChange }, ref) => {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,10 +22,20 @@ export const FileInput: React.FC<FileInputProps> = ({ label, onFileChange }) => 
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    resetFile: () => {
+      setFileName(null);
+      if (inputRef.current) {
+        inputRef.current.value = '';
+      }
+    }
+  }));
+
   return (
     <div className="mb-6 text-white">
       <label className="block mb-2 font-semibold">{label}</label>
       <input
+        ref={inputRef}
         type="file"
         accept=".py"
         onChange={handleChange}
@@ -29,4 +44,4 @@ export const FileInput: React.FC<FileInputProps> = ({ label, onFileChange }) => 
       {fileName && <p className="text-sm mt-1 text-gray-300">Selected: {fileName}</p>}
     </div>
   );
-};
+});
