@@ -17,6 +17,7 @@ function App() {
   const [resolvedContent, setResolvedContent] = useState<ResolvedLine[]>([]);
   const [conflictType, setConflictType] = useState<'A' | 'B' | 'Kompleks' | null>(null);
   const [isResolving, setIsResolving] = useState(false);
+  const [resolveTime, setResolveTime] = useState<number | null>(null); // NEW
 
   const baseRef = useRef<FileInputRef>(null);
   const localRef = useRef<FileInputRef>(null);
@@ -48,16 +49,25 @@ function App() {
     setHasConflict(merged.some(line => line.startsWith('<<<<<<<')));
     setResolvedContent([]);
     setConflictType(null);
+    setResolveTime(null);
   };
 
   const resolveConflict = async () => {
     setIsResolving(true);
+    setResolveTime(null);
+
     try {
+      const startTime = performance.now();
+
       const response = await fetch(`${import.meta.env.VITE_API_DEV}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base, local, remote }),
       });
+
+      const endTime = performance.now();
+      const duration = (endTime - startTime) / 1000;
+      setResolveTime(duration);
 
       if (!response.ok) {
         const err = await response.json();
@@ -91,6 +101,7 @@ function App() {
     setResolvedContent([]);
     setHasConflict(false);
     setConflictType(null);
+    setResolveTime(null);
 
     baseRef.current?.resetFile();
     localRef.current?.resetFile();
@@ -137,6 +148,12 @@ function App() {
               <p className="mb-2 text-sm text-gray-400">
                 Predicted Resolution:{' '}
                 <span className="font-bold">{conflictType}</span>
+              </p>
+            )}
+            {resolveTime !== null && (
+              <p className="mb-2 text-sm text-gray-400">
+                Lama Proses Conflict Resolving:{' '}
+                <span className="font-bold">{resolveTime.toFixed(2)} detik</span>
               </p>
             )}
             <pre className="bg-gray-800 text-white p-4 rounded overflow-auto max-h-[500px] text-sm">
