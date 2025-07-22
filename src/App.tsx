@@ -15,9 +15,9 @@ function App() {
   const [conflictContent, setConflictContent] = useState<string[]>([]);
   const [hasConflict, setHasConflict] = useState(false);
   const [resolvedContent, setResolvedContent] = useState<ResolvedLine[]>([]);
-  const [conflictType, setConflictType] = useState<'A' | 'B' | 'Kompleks' | null>(null);
   const [isResolving, setIsResolving] = useState(false);
-  const [resolveTime, setResolveTime] = useState<number | null>(null); // NEW
+  const [resolveTime, setResolveTime] = useState<number | null>(null);
+  const [conflictTypes, setConflictTypes] = useState<string[]>([]);
 
   const baseRef = useRef<FileInputRef>(null);
   const localRef = useRef<FileInputRef>(null);
@@ -48,7 +48,6 @@ function App() {
     setConflictContent(merged);
     setHasConflict(merged.some(line => line.startsWith('<<<<<<<')));
     setResolvedContent([]);
-    setConflictType(null);
     setResolveTime(null);
   };
 
@@ -56,41 +55,73 @@ function App() {
     setIsResolving(true);
     setResolveTime(null);
 
-    try {
-      const startTime = performance.now();
+    const baseLines = base.split('\n');
+    const localLines = local.split('\n');
+    const remoteLines = remote.split('\n');
 
-      const response = await fetch(`${import.meta.env.VITE_API_DEV}/resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base, local, remote }),
-      });
+    const startTime = performance.now();
+    const result = diff3Merge(localLines, baseLines, remoteLines);
 
-      const endTime = performance.now();
-      const duration = (endTime - startTime) / 1000;
-      setResolveTime(duration);
+    const resolvedLines: ResolvedLine[] = [];
+    const types: string[] = [];
 
-      if (!response.ok) {
-        const err = await response.json();
-        console.error('Resolve failed:', err);
-        alert('Error resolving conflict: ' + (err.error || 'Unknown error'));
-        return;
+    for (const part of result) {
+      if (part.ok) {
+        resolvedLines.push(...part.ok.map(line => ({ line })));
+      } else if (part.conflict) {
+        const baseChunk = part.conflict.o.join('\n');
+        const localChunk = part.conflict.a.join('\n');
+        const remoteChunk = part.conflict.b.join('\n');
+
+        console.log(baseChunk)
+
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_DEV}/resolve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              base: baseChunk,
+              local: localChunk,
+              remote: remoteChunk,
+            }),
+          });
+
+          if (!response.ok) {
+            const err = await response.json();
+            console.error('Resolve failed for chunk:', err);
+            resolvedLines.push({ line: '[Conflict resolution failed]' });
+            continue;
+          }
+
+          const data = await response.json();
+          const type = data.conflict_type;
+          types.push(type || 'Unknown');
+
+          const resolvedCodeRaw = data.resolved_code?.split('\n') || ['[No resolved code]'];
+          const firstLine = localChunk.split('\n').find(line => line.trim() !== '') || '';
+          const indentMatch = firstLine.match(/^(\s+)/); // ambil leading whitespace
+          const indent = indentMatch ? indentMatch[1] : '';
+
+          const resolvedCode = resolvedCodeRaw.map((line: string) => indent + line);
+          const source = data.conflict_type === 'A' ? 'local'
+                        : data.conflict_type === 'B' ? 'remote'
+                        : 'complex';
+
+          resolvedLines.push(...resolvedCode.map((line: string) => ({ line, source })));
+        } catch (err) {
+          console.error('Error resolving chunk:', err);
+          resolvedLines.push({ line: '[Error resolving chunk]' });
+        }
       }
-
-      const data = await response.json();
-      const type = data.conflict_type as 'A' | 'B' | 'Kompleks';
-      const resolvedCode = data.resolved_code?.split('\n') || ['[No resolved code returned]'];
-
-      const source =
-        type === 'A' ? 'local' : type === 'B' ? 'remote' : 'complex';
-
-      setConflictType(type);
-      setResolvedContent(resolvedCode.map((line: string) => ({ line, source })));
-    } catch (error) {
-      console.error('Request error:', error);
-      alert('Error resolving conflict. See console for details.');
-    } finally {
-      setIsResolving(false);
     }
+
+    const endTime = performance.now();
+    const duration = (endTime - startTime) / 1000;
+
+    setResolvedContent(resolvedLines); 
+    setConflictTypes(types);
+    setResolveTime(duration);          
+    setIsResolving(false);  
   };
 
   const clearInputs = () => {
@@ -100,8 +131,8 @@ function App() {
     setConflictContent([]);
     setResolvedContent([]);
     setHasConflict(false);
-    setConflictType(null);
     setResolveTime(null);
+    setConflictTypes([]);
 
     baseRef.current?.resetFile();
     localRef.current?.resetFile();
@@ -144,11 +175,17 @@ function App() {
         {resolvedContent.length > 0 && (
           <div className="bg-gray-900 p-4 rounded shadow-md">
             <h2 className="text-xl font-bold mb-4">Resolved Result:</h2>
-            {conflictType && (
-              <p className="mb-2 text-sm text-gray-400">
-                Predicted Resolution:{' '}
-                <span className="font-bold">{conflictType}</span>
-              </p>
+            {conflictTypes.length > 0 && (
+              <div className="mb-4 text-sm text-gray-400">
+                <p className="font-semibold">Predicted Resolution:</p>
+                <ul className="ml-4 list-disc">
+                  {conflictTypes.map((type, idx) => (
+                    <li key={idx}>
+                      Conflict {idx + 1} = <span className="font-bold">{type}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             {resolveTime !== null && (
               <p className="mb-2 text-sm text-gray-400">
