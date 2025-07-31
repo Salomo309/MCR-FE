@@ -73,17 +73,11 @@ function App() {
         const localChunk = part.conflict.a.join('\n');
         const remoteChunk = part.conflict.b.join('\n');
 
-        console.log(baseChunk)
-
         try {
           const response = await fetch(`${import.meta.env.VITE_API_DEV}/resolve`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              base: baseChunk,
-              local: localChunk,
-              remote: remoteChunk,
-            }),
+            body: JSON.stringify({ base: baseChunk, local: localChunk, remote: remoteChunk }),
           });
 
           if (!response.ok) {
@@ -99,12 +93,15 @@ function App() {
 
           const resolvedCodeRaw = data.resolved_code?.split('\n') || ['[No resolved code]'];
           const firstLine = localChunk.split('\n').find(line => line.trim() !== '') || '';
-          const indentMatch = firstLine.match(/^(\s+)/); // ambil leading whitespace
+          const indentMatch = firstLine.match(/^(\s+)/);
           const indent = indentMatch ? indentMatch[1] : '';
 
-          const resolvedCode = resolvedCodeRaw.map((line: string) => indent + line);
-          const source = data.conflict_type === 'A' ? 'local'
-                        : data.conflict_type === 'B' ? 'remote'
+          const resolvedCode = resolvedCodeRaw.map((line: string, index: number) =>
+            index === 0 ? indent + line : line
+          );
+
+          const source = type === 'A' ? 'local'
+                        : type === 'B' ? 'remote'
                         : 'complex';
 
           resolvedLines.push(...resolvedCode.map((line: string) => ({ line, source })));
@@ -118,10 +115,10 @@ function App() {
     const endTime = performance.now();
     const duration = (endTime - startTime) / 1000;
 
-    setResolvedContent(resolvedLines); 
+    setResolvedContent(resolvedLines);
     setConflictTypes(types);
-    setResolveTime(duration);          
-    setIsResolving(false);  
+    setResolveTime(duration);
+    setIsResolving(false);
   };
 
   const clearInputs = () => {
@@ -162,55 +159,64 @@ function App() {
         </div>
       </div>
 
-      <div className="w-1/2">
-        {conflictContent.length > 0 && resolvedContent.length === 0 && (
-          <ConflictViewer
-            mergedContent={conflictContent}
-            hasConflict={hasConflict}
-            onResolve={resolveConflict}
-            isResolving={isResolving}
-          />
-        )}
+      <div className="w-1/2 space-y-6">
+        {conflictContent.length > 0 && (
+          <>
+            <ConflictViewer
+              mergedContent={conflictContent}
+              hasConflict={hasConflict}
+              onResolve={resolveConflict}
+              isResolving={isResolving}
+            />
 
-        {resolvedContent.length > 0 && (
-          <div className="bg-gray-900 p-4 rounded shadow-md">
-            <h2 className="text-xl font-bold mb-4">Resolved Result:</h2>
-            {conflictTypes.length > 0 && (
-              <div className="mb-4 text-sm text-gray-400">
-                <p className="font-semibold">Predicted Resolution:</p>
-                <ul className="ml-4 list-disc">
-                  {conflictTypes.map((type, idx) => (
-                    <li key={idx}>
-                      Conflict {idx + 1} = <span className="font-bold">{type}</span>
-                    </li>
-                  ))}
-                </ul>
+            {resolvedContent.length > 0 && (
+              <div className="bg-gray-900 p-4 rounded shadow-md">
+                <h2 className="text-xl font-bold mb-4">Resolved Result:</h2>
+                {conflictTypes.length > 0 && (
+                  <div className="mb-4 text-sm text-gray-400">
+                    <p className="font-semibold">Predicted Resolution:</p>
+                    <ul className="ml-4 list-disc">
+                      {conflictTypes.map((type, idx) => {
+                        const label =
+                          type === 'A' ? 'Use Ours / Local'
+                          : type === 'B' ? 'Use Theirs / Remote'
+                          : type === 'Kompleks' ? 'Kompleks'
+                          : 'Kompleks';
+                        return (
+                          <li key={idx}>
+                            Conflict {idx + 1} = <span className="font-bold">{label}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+                {resolveTime !== null && (
+                  <p className="mb-2 text-sm text-gray-400">
+                    Lama Proses Conflict Resolving:{' '}
+                    <span className="font-bold">{resolveTime.toFixed(2)} detik</span>
+                  </p>
+                )}
+                <pre className="bg-gray-800 text-white p-4 rounded overflow-auto max-h-[500px] text-sm">
+                  {resolvedContent.map(({ line, source }, idx) => {
+                    const bgClass =
+                      source === 'local'
+                        ? 'bg-blue-300/30'
+                        : source === 'remote'
+                        ? 'bg-green-300/30'
+                        : source === 'complex'
+                        ? 'bg-yellow-200/30'
+                        : '';
+                    return (
+                      <div key={idx} className={bgClass}>
+                        {line}
+                      </div>
+                    );
+                  })}
+                </pre>
               </div>
             )}
-            {resolveTime !== null && (
-              <p className="mb-2 text-sm text-gray-400">
-                Lama Proses Conflict Resolving:{' '}
-                <span className="font-bold">{resolveTime.toFixed(2)} detik</span>
-              </p>
-            )}
-            <pre className="bg-gray-800 text-white p-4 rounded overflow-auto max-h-[500px] text-sm">
-              {resolvedContent.map(({ line, source }, idx) => {
-                const bgClass =
-                  source === 'local'
-                    ? 'bg-blue-300/30'
-                    : source === 'remote'
-                    ? 'bg-green-300/30'
-                    : source === 'complex'
-                    ? 'bg-yellow-200/30'
-                    : '';
-                return (
-                  <div key={idx} className={bgClass}>
-                    {line}
-                  </div>
-                );
-              })}
-            </pre>
-          </div>
+          </>
         )}
       </div>
     </div>
